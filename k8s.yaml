@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak-health-check
+  labels:
+    app: keycloak-health-check
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak-health-check
+  template:
+    metadata:
+      labels:
+        app: keycloak-health-check
+    spec:
+      containers:
+        - name: keycloak-health-check
+          image: keycloak-health-check:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KC_URL
+              value: "https://keycloak.alex.mn"
+            - name: KC_REALM
+              value: "datalake"
+            - name: KC_CLIENT_ID
+              value: "fds"
+            - name: KC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-health-check-secret
+                  key: client-secret
+            - name: KC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-health-check-secret
+                  key: username
+            - name: KC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-health-check-secret
+                  key: password
+            - name: KC_REDIRECT_URI
+              value: "http://localhost:8080/callback"
+          livenessProbe:
+            httpGet:
+              path: /auth_code_health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /auth_code_health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-health-check
+spec:
+  selector:
+    app: keycloak-health-check
+  ports:
+    - port: 80
+      targetPort: 8080
+  type: ClusterIP
