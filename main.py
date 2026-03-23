@@ -82,6 +82,16 @@ def exchange_token(session, auth_code):
 
     return response.json()
 
+@app.get("/self_health")
+def self_health():
+    """Health check endpoint that verifies proxy itself."""
+    try:
+        return {"status": "ok"}
+    except Exception as e:
+        return JSONResponse(
+            status_code=503,
+            content={"status": "error", "detail": str(e)}
+        )
 
 @app.get("/auth_code_health")
 def auth_code_health():
